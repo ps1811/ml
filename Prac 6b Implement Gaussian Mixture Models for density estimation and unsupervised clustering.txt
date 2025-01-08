@@ -1,0 +1,107 @@
+# Install required libraries
+!pip install matplotlib seaborn scikit-learn
+# Import necessary libraries
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.mixture import GaussianMixture
+from sklearn.model_selection import train_test_split
+from google.colab import files
+# Ask if the user has a CSV file to upload
+print("Do you have a CSV file to upload? (yes/no)")
+response = input().lower()
+
+if response == "yes":
+    # Upload the CSV file
+    uploaded = files.upload()
+    filename = list(uploaded.keys())[0]
+else:
+    # Generate synthetic 2D data with two clusters for demonstration
+    np.random.seed(42) # Indented this line to be part of the else block
+
+    # Generate data for two Gaussian distributions
+    X1 = np.random.normal(loc=0, scale=1, size=(300, 2))  # Cluster 1: mean = 0, std = 1
+    X2 = np.random.normal(loc=5, scale=1, size=(300, 2))  # Cluster 2: mean = 5, std = 1
+
+    # Stack the data to create a dataset
+    X = np.vstack([X1, X2])
+
+    # Create DataFrame to simulate the CSV file for consistency
+    data = pd.DataFrame(X, columns=["Feature_1", "Feature_2"])
+    filename = "synthetic_data.csv"
+data.to_csv(filename, index=False)
+print(f"Synthetic dataset saved as {filename}.")
+# Load the dataset (if CSV file is uploaded)
+data = pd.read_csv(filename)
+
+# Display the first few rows
+print("Dataset Preview:")
+print(data.head())
+
+# Plot the data to visualize its structure
+sns.scatterplot(data=data, x="Feature_1", y="Feature_2")
+plt.title("Synthetic Data")
+plt.xlabel("Feature 1")
+plt.ylabel("Feature 2")
+plt.show()
+# Define the GMM model
+n_components = 2  # Number of Gaussian distributions (clusters)
+gmm = GaussianMixture(n_components=n_components, covariance_type='full', random_state=42)
+
+# Fit the GMM model to the data
+gmm.fit(data)
+
+# Predict the cluster labels for each data point
+labels = gmm.predict(data)
+
+# Add the cluster labels to the dataset for visualization
+data['Cluster'] = labels
+
+# Plot the clustered data
+sns.scatterplot(data=data, x="Feature_1", y="Feature_2", hue="Cluster", palette="viridis", marker="o")
+plt.title("Gaussian Mixture Model Clustering")
+plt.xlabel("Feature 1")
+plt.ylabel("Feature 2")
+plt.legend()
+plt.show()
+# Extract the means and covariances of the Gaussian components
+means = gmm.means_
+covariances = gmm.covariances_
+
+# Plot the GMM components on top of the data
+plt.figure(figsize=(8, 6))
+
+# Plot data points
+sns.scatterplot(data=data, x="Feature_1", y="Feature_2", hue="Cluster", palette="viridis", marker="o", s=60, alpha=0.7)
+
+# Plot the GMM ellipses
+for mean, covar in zip(means, covariances):
+    # Plot the Gaussian components as ellipses
+    v, w = np.linalg.eigh(covar)
+    v = 2.0 * np.sqrt(2.0) * np.sqrt(v)  # Scaling factor for the ellipse
+    u = w[0] / np.linalg.norm(w[0])  # Normalize the eigenvector
+    angle = np.arctan(u[1] / u[0])
+
+    # Create the ellipse
+    angle = angle * 180.0 / np.pi  # Convert to degrees
+    ellipse = plt.matplotlib.patches.Ellipse(mean, v[0], v[1], angle=angle, color='red', alpha=0.3)
+plt.gca().add_patch(ellipse)
+
+plt.title("GMM Clustering with Gaussian Components")
+plt.xlabel("Feature 1")
+plt.ylabel("Feature 2")
+plt.legend()
+plt.show()
+# Compute the log-likelihood of the data under the fitted GMM model
+# Select only the original features used for training
+log_likelihood = gmm.score(data[['Feature_1', 'Feature_2']])
+print(f"Log-Likelihood of the data: {log_likelihood:.2f}")
+# Example of predicting the cluster for new data points
+new_data = np.array([[1.5, 2.5], [4.5, 5.5], [7.0, 8.0]])
+new_labels = gmm.predict(new_data)
+
+# Print the predicted clusters for the new data points
+print("Predicted Clusters for New Data Points:")
+for i, label in enumerate(new_labels):
+    print(f"Data point {new_data[i]} is in Cluster {label}") # Indented this line to be part of the for loop

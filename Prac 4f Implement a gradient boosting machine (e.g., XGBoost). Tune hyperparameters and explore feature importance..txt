@@ -1,0 +1,89 @@
+!pip install scikit-learn==1.3.1
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import accuracy_score, classification_report
+from xgboost import XGBClassifier, plot_importance
+import matplotlib.pyplot as plt
+from google.colab import files
+# Check if the user wants to upload a file or generate one
+print("Do you have a CSV file to upload? (yes/no)")
+response = input().lower()
+
+if response == "yes":
+    # Upload the CSV file
+    uploaded = files.upload()
+    filename = list(uploaded.keys())[0]
+else:
+    # Generate synthetic classification data
+    from sklearn.datasets import make_classification
+
+    X, y = make_classification(n_samples=300, n_features=10, n_classes=2, random_state=42)
+
+    # Combine features and target into a DataFrame
+    data = pd.DataFrame(X, columns=[f"Feature_{i}" for i in range(X.shape[1])])
+    data['Target'] = y
+
+    # Save the synthetic dataset to a CSV file
+    filename = "synthetic_data.csv"
+data.to_csv(filename, index=False)
+print(f"Synthetic dataset saved as {filename}.")
+# Load the dataset
+data = pd.read_csv(filename)
+
+# Display the first few rows of the dataset
+print("Dataset Preview:")
+print(data.head())
+
+# Separate features (X) and target (y)
+X = data.iloc[:, :-1].values  # All columns except the last one
+y = data.iloc[:, -1].values   # Last column as the target
+
+# Split the dataset into training (80%) and testing (20%) sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize and train the XGBoost model with default parameters
+xgb = XGBClassifier(random_state=42)
+xgb.fit(X_train, y_train)
+
+# Predict and evaluate the model
+y_pred = xgb.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print(f"XGBoost Accuracy (Default Parameters): {accuracy:.2f}")
+
+# Define a grid of hyperparameters
+param_grid = {
+    'n_estimators': [50, 100, 150],
+    'learning_rate': [0.01, 0.1, 0.2],
+    'max_depth': [3, 5, 7]
+}
+
+# Initialize GridSearchCV
+grid_search = GridSearchCV(estimator=XGBClassifier(random_state=42),
+param_grid=param_grid,
+                           scoring='accuracy',
+                           cv=3,
+                           verbose=1)
+
+# Fit the model with grid search
+grid_search.fit(X_train, y_train)
+
+# Best parameters from GridSearch
+print(f"Best Parameters: {grid_search.best_params_}")
+
+# Train the final model with the best parameters
+best_xgb = grid_search.best_estimator_
+
+# Predict and evaluate
+y_pred_best = best_xgb.predict(X_test)
+accuracy_best = accuracy_score(y_test, y_pred_best)
+print(f"XGBoost Accuracy (Tuned Parameters): {accuracy_best:.2f}")
+# Plot feature importance for the tuned model
+plt.figure(figsize=(10, 6))
+plot_importance(best_xgb, importance_type='weight', xlabel="Importance", ylabel="Features")
+plt.title("XGBoost Feature Importance")
+plt.show()
+# Print a detailed classification report
+print("Classification Report:")
+print(classification_report(y_test, y_pred_best))

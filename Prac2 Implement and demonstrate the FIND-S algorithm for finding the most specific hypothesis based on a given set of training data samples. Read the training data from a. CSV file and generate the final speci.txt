@@ -1,0 +1,44 @@
+import pandas as pd
+import numpy as np
+# Create a synthetic dataset
+data = {
+ 'Sky': ['Sunny', 'Sunny', 'Rainy', 'Sunny', 'Rainy'],
+ 'Temperature': ['Warm', 'Cold', 'Warm', 'Warm', 'Cold'],
+ 'Humidity': ['Normal', 'High', 'High', 'Normal', 'Normal'],
+ 'Wind': ['Strong', 'Strong', 'Weak', 'Strong', 'Weak'],
+ 'Water': ['Warm', 'Warm', 'Cool', 'Warm', 'Cool'],
+ 'Forecast': ['Same', 'Same', 'Change', 'Same', 'Change'],
+ 'Condition': ['Yes', 'No', 'No', 'Yes', 'No'] # Target variable
+}
+df = pd.DataFrame(data)
+# Save the dataset to a CSV file
+df.to_csv('training_data.csv', index=False)
+# Display the dataset
+print("Dataset:")
+print(df)
+# Load the dataset from CSV
+dataset = pd.read_csv('training_data.csv')
+# Display the dataset
+print("\nLoaded Dataset:")
+print(dataset)
+def find_s(training_data):
+    # Extract the features and target
+    features = training_data.iloc[:, :-1].values # All columns except the last
+    target = training_data.iloc[:, -1].values # Last column (target variable)
+    # Initialize the most specific hypothesis
+    hypothesis = ['Ø'] * features.shape[1]
+    # Iterate through each example in the dataset
+    for i, example in enumerate(features):
+        if target[i] == 'Yes': # Consider only positive examples
+            for j in range(len(hypothesis)): # This line was not indented properly
+                if hypothesis[j] == 'Ø': # Update the hypothesis initially
+                    hypothesis[j] = example[j]
+                elif hypothesis[j] != example[j]: # Generalize if inconsistent
+                    hypothesis[j] = '?'
+
+    return hypothesis
+# Apply the FIND-S algorithm
+final_hypothesis = find_s(dataset)
+# Display the final specific hypothesis
+print("\nFinal Specific Hypothesis:")
+print(final_hypothesis)

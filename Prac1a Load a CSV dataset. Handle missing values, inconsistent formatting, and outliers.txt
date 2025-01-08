@@ -1,0 +1,49 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+url = "https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv"
+data = pd.read_csv(url)
+# Display the first few rows
+print(data.head())
+print("Missing values in each column:")
+print(data.isnull().sum())
+data['Age'].fillna(data['Age'].mean(), inplace=True)
+
+# Fill missing values in 'Embarked' with the most common value
+data['Embarked'].fillna(data['Embarked'].mode()[0], inplace=True)
+
+# Drop rows where 'Cabin' is missing (too many NaNs)
+data.drop(columns=['Cabin'], inplace=True)
+
+# Verify missing values are handled
+print("\nAfter handling missing values:")
+print(data.isnull().sum())
+# Fix inconsistent formatting in the 'Sex' column
+data['Sex'] = data['Sex'].str.lower().str.strip()
+
+# Verify unique values
+print("\nUnique values in 'Sex' column after formatting:")
+print(data['Sex'].unique())
+# Boxplot for the 'Fare' column
+sns.boxplot(data['Fare'], color='skyblue')
+plt.title('Boxplot of Fare')
+plt.show()
+# Detect outliers using the IQR method
+Q1 = data['Fare'].quantile(0.25)
+Q3 = data['Fare'].quantile(0.75)
+IQR = Q3 - Q1
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+
+# Capping outliers
+data['Fare'] = np.where(data['Fare'] > upper_bound, upper_bound,
+                        np.where(data['Fare'] < lower_bound, lower_bound, data['Fare']))
+
+# Verify with an updated boxplot
+sns.boxplot(data['Fare'], color='lightgreen')
+plt.title('Boxplot of Fare (After Handling Outliers)')
+plt.show()
+# Save the cleaned dataset
+data.to_csv('cleaned_titanic.csv', index=False)
+print("\nCleaned dataset saved as 'cleaned_titanic.csv'")
